@@ -1,79 +1,50 @@
-###################################################
-#    Functions used for export of mass spectra    #
-#    from alignment list to matrix of vectors     #
-#    with relative mass intensities as variables. #
-#    Then used for similarity calculations.       #
-##################################################
 
-MS_rewrite <- function(MS){
-  tryCatch(out <- {
-    #function for transforming a selected spectrum defiend as "(m/z1|intensity1)(m/z2|intensity2)"
-    #in to a vector of intensities
-    Zk_new<-vector()
-    #spliting stringinto a vector of variables where variables on even position
-    #are intensities and variables with odd possition are m/z
-    Zk <- as.numeric(unlist(strsplit(MS, split = "\\)\\(|\\)|\\(|\\|")))[-1]
-    for (x in 1:length(Zk)){
-      #selecting variables on even position
-      if ((x%%2)==0){
-        Zk_new <- append(Zk_new, Zk[x])
-        #selecting variables on odd position
-      }else{
-        #number of zeros that should be appended between detected intensities for undetected m/z
-        #for example: if first m/z = 29 we will first append 28 zeros and then first intensity value
-        if (x==1){
-          Zk_new <- append(Zk_new, numeric(Zk[x]-1))
-        }else{
-          # for any other place then first position we will append as many zeros
-          #as is the difference between previews and next m/z minus one: previos29 next 31 -> 31-29-1=1
-          #we will append one zero
-          Zk_new <- append(Zk_new, numeric((Zk[x]-Zk[x-2])-1))
-        }
-      }
-    }
-    return(Zk_new)
-  },
-  error = function(e){
-    print(
-      sprintf("An error occurred in MS_rewrite at %s : %s",
-              Sys.time(),
-              e)
-    )
-  })
 
+#' Cos_sim_based_extr
+#'
+#' @param align_MS dataframe or matrix where in rows are detected peaks and in columns align individual masses value is mass intensity
+#' @param MS_int_cutoff mass intensity threshold every intensity below this value will be set to zero
+#' @param Cos_cutoff threshold for cosine similarity between two mass spectra everything below is set to zero
+#' @param Transitivity_cutoff transitivity threshold everything below is set to zero
+#' @param Group_size minimum number of detected peaks in group detected in network any group with members less then this number will be drop
+#'
+#' @return return table where rows are individual detected peaks second column is number of its group and third column marks if keep the peak or not
+#' @export
+#'
+#' @examples
+Cos_sim_based_extr <- function(align_MS,
+                               MS_int_cutoff = 50, # cutoff for m/z intensity values
+                               Cos_cutoff = 0.8,  # cutoff for spectral similarity
+                               Transitivity_cutoff = 0.9, # cutoff for Transitivity of groups
+                               Group_size = 3){# cutoff for minimum number of members in group
+  # Function clustering network based on cosine similarity with edge betweenness algorithm
+  #cosine distance calculation
+  LECO_export <- align_MS
+  LECO_export[LECO_export < MS_int_cutoff] <- 0 # drop values of intensities lower then MS_int_cutoff
+  LECO_export <- LECO_export[, colSums(LECO_export!=0)>0]# drop all zero columns
+  row.names(LECO_export) <- rownames(align_MS)# adding row names
+  Cos <- lsa::cosine(t(LECO_export)) # calculating cosine similarity
+  Cos[Cos < Cos_cutoff] <- 0 # dropping cosine values lower than Cos_cutoff
+  Cos[Cos > 0] <- 1 #setting remainig values > 0 to 1
+  diag(Cos) <- 0 # deleting diagonal of 1
+  #molecular network
+  g <- igraph::graph_from_adjacency_matrix(Cos, mode = "lower", weighted = NULL) #creating network
+  eb <- igraph::cluster_edge_betweenness(g) # calculating edge betweenness
+  #combining grouping with mass spectra
+  LECO_export_group <- cbind(eb$membership, LECO_export) # adding groups to spectral list
+  #Transitivity calculation
+  Trans_loc <- igraph::transitivity(g, type = "local") # calculating local transitivity of all nodes
+  Trans_loc <- data.frame(Transitivity = Trans_loc, Group = eb$membership) # making adding transitivity to every node with group information
+  Trans_loc <- Trans_loc[!is.na(Trans_loc$Transitivity), ] # deleting all nodes with transitivity = NA
+  Trans_loc <- aggregate(.~Group, data = Trans_loc, mean) # calculating a mean transitivity of groups
+  eb_memb_tab <- as.data.frame(table(eb$membership)) # calculating number of nodes in each group
+  eb_memb_tab <- eb_memb_tab[eb_memb_tab$Var1 %in% Trans_loc$Group, ]# selecting only those with transitivity
+  Trans_loc <- cbind(Trans_loc, eb_memb_tab$Freq)# combinign mean transitivity with group name and number of nodes in group
+  #selecting only groups with transitivyty > Transitivity_cutoff and number of nodes >= Group_size
+  number_of_ms <- Trans_loc[Trans_loc$Transitivity> Transitivity_cutoff & eb_memb_tab$Freq >= Group_size, 1]
+  # creating output list
+  output <- cbind(Group_membership = eb$membership, F_ID = rownames(align_MS))
+  Cos_score_extracted <- ifelse(output[,1]%in%number_of_ms, "Suspicios_feature", "regular_one")
+  output <- cbind(output, Test_results = Cos_score_extracted)
+  return(output)
 }
-
-
-MS_export_tile <- function(Alingment_list, F.names = Alingment_list[,1]){
-  tryCatch(out <- {
-    #export from alignment list in created by Chromatof Tile
-    #with mass spectra export option selected
-    #applying MS_rewrite function on every single row of Alingment_list
-    # vectors are saved as list
-    Tab_export <- lapply(Alingment_list[,ncol(Alingment_list)] , MS_rewrite)
-    #making every vector the same length as vector with maximum length
-    Tab_export <- Map(function(x, y) append(y, numeric(x)),
-                      max(lengths(Tab_export))-lengths(Tab_export),
-                      Tab_export)
-    #this list is exported to dataframe
-    Tab_export <- as.data.frame(do.call(rbind, Tab_export))
-    #nameing rows of Tab_export
-    rownames(Tab_export) <- F.names
-    #nameming columns of Tab_export
-    MZ <- 1:ncol(Tab_export)
-    colnames(Tab_export) <- paste("m/z", MZ, sep = "_")
-    return(Tab_export)
-  },
-  error = function(e){
-    print(
-      sprintf("An error occurred in MS_export_tile at %s : %s",
-              Sys.time(),
-              e)
-    )
-  })
-}
-
-
-Tab_zk <-read.csv("Smelodi_covid4 - Copy.csv")
-
-MS_export_tile(Tab_zk)
