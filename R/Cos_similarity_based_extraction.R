@@ -1,8 +1,14 @@
 
 
 #' Cos_sim_based_extr
+#' @title  detect features that are suspicious for being artefacts produced by column bleed solvent etc.
+#' @description This functions uses a fact that spectra of natural occurring compounds are usually
+#' far less similar then spectra of common impurities. It searches for groups that are highly similar inside and
+#' but not as similar between groups. If the group fits parameters it is set as suspicious.
 #'
-#' @param align_MS dataframe or matrix where in rows are detected peaks and in columns align individual masses value is mass intensity
+#'
+#'
+#' @param align_MS matrix where in rows are detected peaks and in columns align individual masses value is mass intensity
 #' @param MS_int_cutoff mass intensity threshold every intensity below this value will be set to zero
 #' @param Cos_cutoff threshold for cosine similarity between two mass spectra everything below is set to zero
 #' @param Transitivity_cutoff transitivity threshold everything below is set to zero
@@ -11,7 +17,12 @@
 #' @return return table where rows are individual detected peaks second column is number of its group and third column marks if keep the peak or not
 #' @export
 #'
-#' @examples
+#' @examples data("Tab_align_ms")
+#' @examples Cos_res <- Cos_sim_based_extr(Tab_align_ms, Cos_cutoff = 0.8)
+#' @examples summary(Cos_res)
+#'
+#'
+#'
 Cos_sim_based_extr <- function(align_MS,
                                MS_int_cutoff = 50, # cutoff for m/z intensity values
                                Cos_cutoff = 0.8,  # cutoff for spectral similarity
@@ -20,6 +31,7 @@ Cos_sim_based_extr <- function(align_MS,
   # Function clustering network based on cosine similarity with edge betweenness algorithm
   #cosine distance calculation
   LECO_export <- align_MS
+  LECO_export[is.na(LECO_export)] <- 0
   LECO_export[LECO_export < MS_int_cutoff] <- 0 # drop values of intensities lower then MS_int_cutoff
   LECO_export <- LECO_export[, colSums(LECO_export!=0)>0]# drop all zero columns
   row.names(LECO_export) <- rownames(align_MS)# adding row names

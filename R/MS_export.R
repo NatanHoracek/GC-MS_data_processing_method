@@ -74,6 +74,3 @@ MS_export_tile <- function(Alingment_list, F.names = Alingment_list[,1]){
 }
 
 
-Tab_zk <-read.csv("Smelodi_covid4 - Copy.csv")
-
-MS_export_tile(Tab_zk)
