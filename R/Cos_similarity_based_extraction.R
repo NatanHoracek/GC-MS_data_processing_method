@@ -1,20 +1,31 @@
 
 
 #' Cos_sim_based_extr
-#' @title  detect features that are suspicious for being artefacts produced by column bleed solvent etc.
-#' @description This functions uses a fact that spectra of natural occurring compounds are usually
-#' far less similar then spectra of common impurities. It searches for groups that are highly similar inside and
-#' but not as similar between groups. If the group fits parameters it is set as suspicious.
+#' @title  Function detects features that are possibly artefacts produced by
+#' column bleed, solvent, machine and method imperfection,
+#' sorbent decomposition etc.
+#'
+#' @description Mass spectra of secondary and primary metabolites and other
+#' natural products are usually les similar compound to compound and more
+#' similar between groups of compounds then mass spectra of impurities witch
+#' are highly similar in group and less similar between groups. This is used
+#' in this function which searches for groups of mass spectra in the sample that
+#' are highly similar inside group and with low similarity outside group.
 #'
 #'
 #'
-#' @param align_MS matrix where in rows are detected peaks and in columns align individual masses value is mass intensity
-#' @param MS_int_cutoff mass intensity threshold every intensity below this value will be set to zero
-#' @param Cos_cutoff threshold for cosine similarity between two mass spectra everything below is set to zero
-#' @param Transitivity_cutoff transitivity threshold everything below is set to zero
-#' @param Group_size minimum number of detected peaks in group detected in network any group with members less then this number will be drop
+#' @param align_MS Matrix in which rows are detected peaks and columns are
+#' individual masses. Value is mass intensity.
+#' @param MS_int_cutoff Mass intensity threshold every intensity below this
+#' value will be set to zero.
+#' @param Cos_cutoff Threshold for cosine similarity between two mass spectra
+#' everything below is set to zero.
+#' @param Transitivity_cutoff Transitivity threshold everything below is set to zero
+#' @param Group_size Minimum number of detected peaks in group detected in
+#' network any group with less members then this number will be drop.
 #'
-#' @return return table where rows are individual detected peaks second column is number of its group and third column marks if keep the peak or not
+#' @return return table where rows are individual detected peaks second column
+#' is number of its group and third column marks if keep the peak or not
 #' @export
 #'
 #' @examples data("Tab_align_ms")
@@ -56,7 +67,7 @@ Cos_sim_based_extr <- function(align_MS,
   number_of_ms <- Trans_loc[Trans_loc$Transitivity> Transitivity_cutoff & eb_memb_tab$Freq >= Group_size, 1]
   # creating output list
   output <- cbind(Group_membership = eb$membership, F_ID = rownames(align_MS))
-  Cos_score_extracted <- ifelse(output[,1]%in%number_of_ms, "Suspicios_feature", "regular_one")
+  Cos_score_extracted <- ifelse(output[,1]%in%number_of_ms, "Suspicious_feature", "regular_one")
   output <- cbind(output, Test_results = Cos_score_extracted)
   return(output)
 }

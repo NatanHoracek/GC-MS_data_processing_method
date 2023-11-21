@@ -2,7 +2,9 @@
 % Please edit documentation in R/Cos_similarity_based_extraction.R
 \name{Cos_sim_based_extr}
 \alias{Cos_sim_based_extr}
-\title{detect features that are suspicious for being artefacts produced by column bleed solvent etc.}
+\title{Function detects features that are possibly artefacts produced by
+column bleed, solvent, machine and method imperfection,
+sorbent decomposition etc.}
 \usage{
 Cos_sim_based_extr(
   align_MS,
@@ -13,23 +15,31 @@ Cos_sim_based_extr(
 )
 }
 \arguments{
-\item{align_MS}{matrix where in rows are detected peaks and in columns align individual masses value is mass intensity}
+\item{align_MS}{Matrix in which rows are detected peaks and columns are
+individual masses. Value is mass intensity.}
 
-\item{MS_int_cutoff}{mass intensity threshold every intensity below this value will be set to zero}
+\item{MS_int_cutoff}{Mass intensity threshold every intensity below this
+value will be set to zero.}
 
-\item{Cos_cutoff}{threshold for cosine similarity between two mass spectra everything below is set to zero}
+\item{Cos_cutoff}{Threshold for cosine similarity between two mass spectra
+everything below is set to zero.}
 
-\item{Transitivity_cutoff}{transitivity threshold everything below is set to zero}
+\item{Transitivity_cutoff}{Transitivity threshold everything below is set to zero}
 
-\item{Group_size}{minimum number of detected peaks in group detected in network any group with members less then this number will be drop}
+\item{Group_size}{Minimum number of detected peaks in group detected in
+network any group with less members then this number will be drop.}
 }
 \value{
-return table where rows are individual detected peaks second column is number of its group and third column marks if keep the peak or not
+return table where rows are individual detected peaks second column
+is number of its group and third column marks if keep the peak or not
 }
 \description{
-This functions uses a fact that spectra of natural occurring compounds are usually
-far less similar then spectra of common impurities. It searches for groups that are highly similar inside and
-but not as similar between groups. If the group fits parameters it is set as suspicious.
+Mass spectra of secondary and primary metabolites and other
+natural products are usually les similar compound to compound and more
+similar between groups of compounds then mass spectra of impurities witch
+are highly similar in group and less similar between groups. This is used
+in this function which searches for groups of mass spectra in the sample that
+are highly similar inside group and with low similarity outside group.
 }
 \details{
 Cos_sim_based_extr

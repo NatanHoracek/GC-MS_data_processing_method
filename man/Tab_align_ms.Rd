@@ -3,7 +3,7 @@
 \docType{data}
 \name{Tab_align_ms}
 \alias{Tab_align_ms}
-\title{Alignt mass spectra}
+\title{Align mass spectra}
 \format{
 matrix with 705 rows and 502 columns where in columns are mass to charge ratios from 1-502
 and in rows are individual detected peaks
